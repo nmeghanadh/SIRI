@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIRI Digital Maturity & Prioritisation Tool</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- docx generation library -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <!-- FileSaver for downloads -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white py-6 shadow-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">SIRI Digital Maturity Assessment & Prioritisation</h1>
+        <p class="text-xs text-slate-400 mt-1">Smart Industry Readiness Index (SIRI) Self-Assessment Framework</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="exportCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition">
+          Export CSV
+        </button>
+        <button onclick="exportWord()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition">
+          Export Word (.docx)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Plant Metadata -->
+    <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Facility / Plant Name</label>
+        <input type="text" id="plantName" value="Plant Alpha - Manufacturing Unit" class="w-full border border-slate-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Lead Assessor</label>
+        <input type="text" id="assessorName" value="Industrial Digitalization Team" class="w-full border border-slate-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Assessment Date</label>
+        <input type="date" id="assessmentDate" class="w-full border border-slate-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Left Column: The 16 SIRI Dimensions Assessment -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-slate-800">1. Maturity Evaluation (16 Dimensions)</h2>
+            <span class="text-xs text-slate-500">Maturity Bands: 0 (None) to 5 (Autonomous/Leading)</span>
+          </div>
+          <div id="dimensionsContainer" class="space-y-6"></div>
+        </div>
+
+        <!-- TIER Prioritisation Section -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 class="text-xl font-bold text-slate-800 mb-2">2. SIRI Prioritisation Matrix (TIER Engine)</h2>
+          <p class="text-xs text-slate-600 mb-4">
+            Identify the <strong>Top 4 Priority Dimensions</strong> by weighting high cost drivers and target operational KPIs against maturity gaps.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Primary Cost Driver</label>
+              <select id="costDriver" onchange="runPrioritisation()" class="w-full border border-slate-300 rounded-md p-2 text-sm">
+                <option value="labor">Direct Labor Costs (High Assembly / Manual Ops)</option>
+                <option value="energy">Energy & Utilities (High Consumption / Heat / Kilns)</option>
+                <option value="inventory">WIP & Raw Inventory Carrying Cost</option>
+                <option value="quality">Scrap, Rework & Quality Escapes</option>
+                <option value="downtime">Unplanned Equipment Maintenance & Downtime</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Strategic Business Objective</label>
+              <select id="businessGoal" onchange="runPrioritisation()" class="w-full border border-slate-300 rounded-md p-2 text-sm">
+                <option value="throughput">Accelerate Lead Time & Output Throughput</option>
+                <option value="flexibility">Mass Customization & Flexible Batch Runs</option>
+                <option value="safety">Zero Harm, Operational Safety & Compliance</option>
+                <option value="sustainability">Decarbonization & Resource Efficiency</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <h3 class="font-bold text-sm text-slate-800 mb-2">Recommended Focus Dimensions (Top 4 Priority Areas):</h3>
+            <div id="priorityResults" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Dashboard & Visualization -->
+      <div class="space-y-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-4">
+          <h2 class="text-xl font-bold text-slate-800 mb-4">Maturity Radar Profile</h2>
+          <div class="relative w-full aspect-square">
+            <canvas id="siriRadarChart"></canvas>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-100">
+            <h4 class="text-xs uppercase font-bold text-slate-500 mb-3 tracking-wider">Building Block Summary</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between items-center py-1">
+                <span class="text-slate-600 font-medium">Process (Operations, Supply Chain, Product)</span>
+                <span id="scoreProcess" class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">0.0</span>
+              </div>
+              <div class="flex justify-between items-center py-1">
+                <span class="text-slate-600 font-medium">Technology (Automation, Connectivity, Intelligence)</span>
+                <span id="scoreTech" class="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">0.0</span>
+              </div>
+              <div class="flex justify-between items-center py-1">
+                <span class="text-slate-600 font-medium">Organization (Talent, Structure & Management)</span>
+                <span id="scoreOrg" class="font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">0.0</span>
+              </div>
+              <div class="flex justify-between items-center pt-2 border-t border-slate-200 font-bold">
+                <span class="text-slate-800">Overall SIRI Index</span>
+                <span id="scoreOverall" class="text-slate-900 bg-slate-200 px-2.5 py-1 rounded">0.0 / 5.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // 16 Standard SIRI Dimensions across 3 Building Blocks & 8 Pillars
+    const siriDimensions = [
+      { id: "proc_ops", block: "Process", pillar: "Operations", name: "Operations", desc: "Digitalized shop-floor work execution and continuous flow." },
+      { id: "proc_sc", block: "Process", pillar: "Supply Chain", name: "Supply Chain", desc: "End-to-end material tracking, supplier integration, and logistics." },
+      { id: "proc_lc", block: "Process", pillar: "Product Lifecycle", name: "Product Lifecycle", desc: "Digital PLM, CAD/CAM integration, and feedback loops into design." },
+      { id: "tech_auto_shop", block: "Technology", pillar: "Automation", name: "Shop Floor Automation", desc: "Robotics, AGVs, automated equipment, and PLC/SCADA controls." },
+      { id: "tech_auto_ent", block: "Technology", pillar: "Automation", name: "Enterprise Automation", desc: "ERP, MES, WMS integration, and business workflow automation." },
+      { id: "tech_auto_fac", block: "Technology", pillar: "Automation", name: "Facility Automation", desc: "Automated HVAC, energy monitoring, lighting, and safety systems." },
+      { id: "tech_conn_shop", block: "Technology", pillar: "Connectivity", name: "Shop Floor Connectivity", desc: "Industrial IoT, sensors, edge devices, and fieldbus standards." },
+      { id: "tech_conn_ent", block: "Technology", pillar: "Connectivity", name: "Enterprise Connectivity", desc: "Cloud/on-prem IT-OT architectures, APIs, and data lakes." },
+      { id: "tech_conn_fac", block: "Technology", pillar: "Connectivity", name: "Facility Connectivity", desc: "Smart meters and building management communication protocols." },
+      { id: "tech_int_shop", block: "Technology", pillar: "Intelligence", name: "Shop Floor Intelligence", desc: "Predictive maintenance, AI vision quality checks, and real-time control." },
+      { id: "tech_int_ent", block: "Technology", pillar: "Intelligence", name: "Enterprise Intelligence", desc: "Demand forecasting, advanced inventory optimization, and executive AI." },
+      { id: "tech_int_fac", block: "Technology", pillar: "Intelligence", name: "Facility Intelligence", desc: "Predictive energy conservation and smart facility maintenance." },
+      { id: "org_tal_read", block: "Organization", pillar: "Talent Readiness", name: "Workforce Learning & Dev", desc: "Upskilling programs in digital, robotics, and data competencies." },
+      { id: "org_tal_lead", block: "Organization", pillar: "Talent Readiness", name: "Leadership Competency", desc: "Executive vision, digital roadmap ownership, and change agility." },
+      { id: "org_struct_gov", block: "Organization", pillar: "Structure & Mgmt", name: "Inter- & Intra-Company Collab", desc: "Cross-functional teams, agile execution, and partner ecosystems." },
+      { id: "org_struct_strat", block: "Organization", pillar: "Structure & Mgmt", name: "Strategy & Governance", desc: "Digital KPIs, ROI governance, and cybersecurity frameworks." }
+    ];
+
+    let radarChart;
+    const scores = {};
+
+    // Initialize Page
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById('assessmentDate').value = new Date().toISOString().split('T')[0];
+      renderDimensions();
+      initRadarChart();
+      updateScores();
+      runPrioritisation();
+    });
+
+    function renderDimensions() {
+      const container = document.getElementById("dimensionsContainer");
+      let currentBlock = "";
+
+      siriDimensions.forEach(dim => {
+        scores[dim.id] = 1; // Default band 1
+
+        if (dim.block !== currentBlock) {
+          currentBlock = dim.block;
+          const blockHeader = document.createElement("div");
+          blockHeader.className = "pt-4 pb-2 border-b-2 border-slate-200 text-sm uppercase tracking-wider font-extrabold text-slate-700";
+          blockHeader.textContent = `${currentBlock} Building Block`;
+          container.appendChild(blockHeader);
+        }
+
+        const div = document.createElement("div");
+        div.className = "p-4 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition";
+        div.innerHTML = `
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
+            <div>
+              <span class="text-xs uppercase font-semibold text-blue-600 tracking-wide">${dim.pillar}</span>
+              <h4 class="font-bold text-slate-800">${dim.name}</h4>
+              <p class="text-xs text-slate-500">${dim.desc}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold text-slate-600">Band:</label>
+              <select id="select_${dim.id}" onchange="onScoreChange('${dim.id}', this.value)" class="border border-slate-300 rounded px-2.5 py-1 text-sm bg-white font-semibold">
+                <option value="0">Band 0 - Not Started</option>
+                <option value="1" selected>Band 1 - Initial / Ad-hoc</option>
+                <option value="2">Band 2 - Defined</option>
+                <option value="3">Band 3 - Connected / Managed</option>
+                <option value="4">Band 4 - Integrated / Advanced</option>
+                <option value="5">Band 5 - Autonomous / Leading</option>
+              </select>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function onScoreChange(id, val) {
+      scores[id] = parseInt(val, 10);
+      updateScores();
+      runPrioritisation();
+    }
+
+    function updateScores() {
+      let procSum = 0, procCount = 0;
+      let techSum = 0, techCount = 0;
+      let orgSum = 0, orgCount = 0;
+
+      siriDimensions.forEach(d => {
+        const val = scores[d.id];
+        if (d.block === "Process") { procSum += val; procCount++; }
+        if (d.block === "Technology") { techSum += val; techCount++; }
+        if (d.block === "Organization") { orgSum += val; orgCount++; }
+      });
+
+      const avgProc = (procSum / procCount).toFixed(2);
+      const avgTech = (techSum / techCount).toFixed(2);
+      const avgOrg = (orgSum / orgCount).toFixed(2);
+      const avgOverall = ((procSum + techSum + orgSum) / siriDimensions.length).toFixed(2);
+
+      document.getElementById("scoreProcess").textContent = avgProc;
+      document.getElementById("scoreTech").textContent = avgTech;
+      document.getElementById("scoreOrg").textContent = avgOrg;
+      document.getElementById("scoreOverall").textContent = `${avgOverall} / 5.0`;
+
+      if (radarChart) {
+        radarChart.data.datasets[0].data = siriDimensions.map(d => scores[d.id]);
+        radarChart.update();
+      }
+    }
+
+    function initRadarChart() {
+      const ctx = document.getElementById("siriRadarChart").getContext("2d");
+      radarChart = new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: siriDimensions.map(d => d.name),
+          datasets: [{
+            label: "Maturity Band",
+            data: siriDimensions.map(d => scores[d.id]),
+            fill: true,
+            backgroundColor: "rgba(59, 130, 246, 0.2)",
+            borderColor: "rgb(37, 99, 235)",
+            pointBackgroundColor: "rgb(37, 99, 235)",
+            pointHoverBorderColor: "rgb(37, 99, 235)"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 5,
+              ticks: { stepSize: 1 }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    // TIER Matrix Impact Mapping Logic
+    function runPrioritisation() {
+      const cost = document.getElementById("costDriver").value;
+      const goal = document.getElementById("businessGoal").value;
+
+      // Weight impact based on cost drivers and business goals
+      const impactWeights = {
+        labor: ["tech_auto_shop", "proc_ops", "tech_auto_ent", "org_tal_read"],
+        energy: ["tech_conn_fac", "tech_int_fac", "tech_auto_fac", "proc_ops"],
+        inventory: ["proc_sc", "tech_auto_ent", "tech_int_ent", "tech_conn_ent"],
+        quality: ["tech_int_shop", "proc_ops", "tech_conn_shop", "proc_lc"],
+        downtime: ["tech_int_shop", "tech_conn_shop", "proc_ops", "org_tal_read"]
+      };
+
+      const goalWeights = {
+        throughput: ["proc_ops", "tech_auto_shop", "tech_int_shop", "proc_sc"],
+        flexibility: ["proc_lc", "tech_auto_ent", "org_struct_gov", "tech_conn_shop"],
+        safety: ["tech_auto_fac", "proc_ops", "org_struct_strat", "tech_conn_shop"],
+        sustainability: ["tech_int_fac", "tech_conn_fac", "tech_auto_fac", "proc_ops"]
+      };
+
+      // TIER Calculation: Priority Score = Gap * (Cost Weight + Goal Weight)
+      const ranked = siriDimensions.map(dim => {
+        const gap = 5 - scores[dim.id]; // Room for improvement
+        let weight = 1.0;
+        if (impactWeights[cost].includes(dim.id)) weight += 1.8;
+        if (goalWeights[goal].includes(dim.id)) weight += 1.5;
+
+        return {
+          ...dim,
+          currentScore: scores[dim.id],
+          tierScore: gap * weight
+        };
+      });
+
+      ranked.sort((a, b) => b.tierScore - a.tierScore);
+      const top4 = ranked.slice(0, 4);
+
+      const resultsContainer = document.getElementById("priorityResults");
+      resultsContainer.innerHTML = "";
+      top4.forEach((item, index) => {
+        const div = document.createElement("div");
+        div.className = "p-3 bg-white border border-slate-200 rounded-lg shadow-sm";
+        div.innerHTML = `
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-5 h-5 flex items-center justify-center bg-blue-600 text-white rounded-full text-xs font-bold">${index + 1}</span>
+            <span class="font-bold text-slate-800">${item.name}</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-1">Current Band: <strong>${item.currentScore}/5</strong></p>
+          <p class="text-xs text-emerald-700 font-semibold">Priority Index: ${item.tierScore.toFixed(1)}</p>
+        `;
+        resultsContainer.appendChild(div);
+      });
+    }
+
+    // Export CSV
+    function exportCSV() {
+      const plant = document.getElementById("plantName").value;
+      const date = document.getElementById("assessmentDate").value;
+
+      let csv = "Building Block,Pillar,Dimension,Maturity Band (0-5),Description\n";
+      siriDimensions.forEach(d => {
+        csv += `"${d.block}","${d.pillar}","${d.name}",${scores[d.id]},"${d.desc}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      saveAs(blob, `SIRI_Assessment_${plant.replace(/\s+/g, "_")}_${date}.csv`);
+    }
+
+    // Export Word Document (.docx)
+    async function exportWord() {
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = docx;
+
+      const plant = document.getElementById("plantName").value;
+      const assessor = document.getElementById("assessorName").value;
+      const date = document.getElementById("assessmentDate").value;
+
+      const tableRows = [
+        new TableRow({
+          children: [
+            new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Building Block", bold: true })] })] }),
+            new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Pillar", bold: true })] })] }),
+            new TableCell({ width: { size: 35, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Dimension", bold: true })] })] }),
+            new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: "Band (0-5)", bold: true })] })] }),
+          ]
+        })
+      ];
+
+      siriDimensions.forEach(d => {
+        tableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph(d.block)] }),
+              new TableCell({ children: [new Paragraph(d.pillar)] }),
+              new TableCell({ children: [new Paragraph(d.name)] }),
+              new TableCell({ children: [new Paragraph(String(scores[d.id]))] }),
+            ]
+          })
+        );
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({ text: "SIRI Digital Maturity Assessment Report", heading: HeadingLevel.TITLE }),
+            new Paragraph({ text: `Plant / Facility: ${plant}` }),
+            new Paragraph({ text: `Lead Assessor: ${assessor}` }),
+            new Paragraph({ text: `Date: ${date}` }),
+            new Paragraph({ text: `Overall SIRI Score: ${document.getElementById("scoreOverall").textContent}` }),
+            new Paragraph({ text: "" }),
+            new Paragraph({ text: "16 Dimensions Scorecard", heading: HeadingLevel.HEADING_1 }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: tableRows
+            }),
+            new Paragraph({ text: "" }),
+            new Paragraph({ text: "TIER Prioritisation Summary", heading: HeadingLevel.HEADING_1 }),
+            new Paragraph({ text: `Cost Driver Focus: ${document.getElementById("costDriver").selectedOptions[0].text}` }),
+            new Paragraph({ text: `Target Business Goal: ${document.getElementById("businessGoal").selectedOptions[0].text}` }),
+            new Paragraph({ text: "Top priority areas identified are recorded in the assessment console." })
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `SIRI_Report_${plant.replace(/\s+/g, "_")}_${date}.docx`);
+    }
+  </script>
+</body>
+</html>
